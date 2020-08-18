@@ -191,6 +191,8 @@ FENCE WARNING  use these for visualization only as they completely alter the rob
         </body>
         </body>
         </body>
+        <site name="gripsite" pos="0 -0.0001 -.159" quat="0 0.70710678118 0.70710678118 0"/>
+      <site name="pinchsite" pos="0.015 0.0024 -0.193" quat="0 0.70710678118 0.70710678118 0"/>
         </body>
 
     <!-- I added fences below to visualize software fence boundaries. The robot will not receive a goal outside of this region, nor will it be allowed to place a joint outside of the fence. Ideally we would use planes and allow the simulator to tell us if we collide, but this seems to cause the simulation to be unstable. Capsules are a compromise in that they allow us to pass the fence info to the model and evaluate in a visual way.  -->

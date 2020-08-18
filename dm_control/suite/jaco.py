@@ -135,12 +135,13 @@ def relative_position_reacher_7DOF(random=None, fence={'x':(-1,1),'y':(-1,1),'z'
              extreme_joints=extreme_joints, 
              target_size=target_size, 
              target_type=target_type)
+    embed()
     return control.Environment(
         physics, task, 
         control_timestep=control_timestep,
         time_limit=episode_timelimit, 
         **environment_kwargs)
-
+ 
 @SUITE.add('benchmarking', 'configurable_reacher')
 def configurable_reacher(xml_name='jaco_j2s7s300_position.xml', 
                          random=None, 

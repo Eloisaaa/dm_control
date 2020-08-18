@@ -18,7 +18,8 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
+from dm_control.utils import inverse_kinematics
+from IPython import embed
 from dm_control import mujoco
 from dm_control.rl import control
 
@@ -85,6 +86,71 @@ class Task(control.Task):
     if self._visualize_reward:
       reward = np.clip(self.get_reward(physics), 0.0, 1.0)
       _set_reward_colors(physics, reward)
+  def set_site_to_xpos(self, physics, random_state, site, fence, target_pos,
+                       target_quat=None, max_ik_attempts=10):
+    """Moves the arm so that a site occurs at the specified location.
+    This function runs the inverse kinematics solver to find a configuration
+    arm joints for which the pinch site occurs at the specified location in
+    Cartesian coordinates.
+    Args:
+      physics: A `mujoco.Physics` instance.
+      random_state: An `np.random.RandomState` instance.
+      site: Either a `mjcf.Element` or a string specifying the full name
+        of the site whose position is being set.
+      target_pos: The desired Cartesian location of the site.
+      target_quat: (optional) The desired orientation of the site, expressed
+        as a quaternion. If `None`, the default orientation is to point
+        vertically downwards.
+      max_ik_attempts: (optional) Maximum number of attempts to make at finding
+        a solution satisfying `target_pos` and `target_quat`. The joint
+        positions will be randomized after each unsuccessful attempt.
+    Returns:
+      A boolean indicating whether the desired configuration is obtained.
+    Raises:
+      ValueError: If site is neither a string nor an `mjcf.Element`.
+    """
+    if isinstance(site, mjcf.Element):
+      site_name = site.full_identifier
+    elif isinstance(site, str):
+      site_name = site
+    else:
+      raise ValueError('site should either be a string or mjcf.Element: got {}'
+                       .format(site))
+    if target_quat is None:
+      target_quat = DOWN_QUATERNION
+    lower = [fence['x'][0],fence['y'][0],fence['z'][0]]
+    upper = [fence['x'][-1],fence['y'][-1],fence['z'][-1]]
+    arm_joint_names = ['jaco_joint_1','jaco_joint_2','jaco_joint_3','jaco_joint_4','jaco_joint_5','jaco_joint_6','jaco_joint_7']
+
+    for _ in range(max_ik_attempts):
+      result = inverse_kinematics.qpos_from_site_pose(
+          physics=physics,
+          site_name=site_name,
+          target_pos=target_pos,
+          target_quat=target_quat,
+          joint_names=arm_joint_names,
+          rot_weight=2,
+          inplace=True)
+      success = result.success
+
+      # Canonicalise the angle to [0, 2*pi]
+      if success:
+        for arm_joint, low, high in zip(arm_joint_names, lower, upper):
+          while physics.named.data.geom_xpos[arm_joint] >= high:
+            physics.named.data.qpos[arm_joint] -= 2*np.pi
+          while physics.named.data.geom_xpos[arm_joint] < low:
+            physics.named.data.qpos[arm_joint] += 2*np.pi
+            if physics.named.data.geom_xpos[arm_joint] > high:
+              success = False
+              break
+
+      # If succeeded or only one attempt, break and do not randomize joints.
+      if success or max_ik_attempts <= 1:
+        break
+      else:
+        #self.randomize_arm_joints(physics, random_state)
+
+    return success
 
   @property
   def visualize_reward(self):
