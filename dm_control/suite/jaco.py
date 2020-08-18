@@ -135,7 +135,7 @@ def relative_position_reacher_7DOF(random=None, fence={'x':(-1,1),'y':(-1,1),'z'
              extreme_joints=extreme_joints, 
              target_size=target_size, 
              target_type=target_type)
-    embed()
+    
     return control.Environment(
         physics, task, 
         control_timestep=control_timestep,
